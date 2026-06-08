@@ -306,7 +306,7 @@ html, body {
   transform-origin: center;
   transform: translate(-5%, -5%);
   will-change: transform;
-  filter: brightness(0.5) saturate(1.15);
+  filter: brightness(0.62) saturate(1.15);
   /* NO animated filter — just static brightness */
 }
 
