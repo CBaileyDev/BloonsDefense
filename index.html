@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bloons Reborn — Tower Defense Reimagined</title>
+  <meta name="description" content="Bloons Reborn is a reimagined tower defense experience. New bloons, new monkeys, new maps — the ultimate balloon-popping showdown." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ============================================================
+       SPLASH / TITLE SCREEN
+  ============================================================ -->
+  <div id="screen-splash" class="screen active">
+    <canvas id="splash-canvas"></canvas>
+    <div class="splash-content">
+      <div class="splash-logo-wrap">
+        <img src="game_logo.png" alt="Bloons Reborn" class="splash-logo" id="splash-logo-img" />
+        <div class="splash-glow-ring"></div>
+      </div>
+      <p class="splash-subtitle">TOWER DEFENSE REIMAGINED</p>
+      <div class="splash-click-prompt" id="splash-click-prompt">
+        <span>CLICK ANYWHERE TO CONTINUE</span>
+      </div>
+    </div>
+    <div class="splash-particles" id="splash-particles"></div>
+    <div class="splash-vignette"></div>
+  </div>
+
+  <!-- ============================================================
+       LOADING SCREEN
+  ============================================================ -->
+  <div id="screen-loading" class="screen">
+    <canvas id="loading-canvas"></canvas>
+    <div class="loading-content">
+      <div class="loading-logo-small">
+        <span class="loading-title-text">BLOONS</span>
+        <span class="loading-title-accent">REBORN</span>
+      </div>
+      <div class="loading-bar-container">
+        <div class="loading-bar-track">
+          <div class="loading-bar-fill" id="loading-bar-fill"></div>
+          <div class="loading-bar-sheen"></div>
+        </div>
+        <div class="loading-percent" id="loading-percent">0%</div>
+      </div>
+      <div class="loading-tip" id="loading-tip">
+        <span class="tip-label">TIP</span>
+        <span class="tip-text" id="tip-text">Place towers near curves in the path for maximum coverage!</span>
+      </div>
+      <div class="loading-assets" id="loading-assets">Initializing game engine...</div>
+    </div>
+    <div class="loading-bloons" id="loading-bloons"></div>
+    <div class="loading-scanlines"></div>
+  </div>
+
+  <!-- ============================================================
+       MAIN MENU
+  ============================================================ -->
+  <div id="screen-menu" class="screen">
+    <div class="menu-bg-wrap">
+      <img src="menu_bg.png" alt="" class="menu-bg-img" id="menu-bg-img" />
+      <div class="menu-bg-overlay"></div>
+    </div>
+
+    <!-- Floating bloons in background -->
+    <div class="menu-bloons" id="menu-bloons"></div>
+
+    <!-- Top bar -->
+    <header class="menu-header">
+      <div class="menu-currency">
+        <div class="currency-item" id="hdr-cash">
+          <span class="currency-icon">💰</span>
+          <span class="currency-val">0</span>
+        </div>
+        <div class="currency-item" id="hdr-gems">
+          <span class="currency-icon">💎</span>
+          <span class="currency-val">250</span>
+        </div>
+        <div class="currency-item" id="hdr-trophies">
+          <span class="currency-icon">🏆</span>
+          <span class="currency-val">0</span>
+        </div>
+      </div>
+      <div class="menu-player-card">
+        <div class="player-avatar">🐒</div>
+        <div class="player-info">
+          <div class="player-name">Commander</div>
+          <div class="player-level">
+            <div class="xp-bar"><div class="xp-fill" style="width:12%"></div></div>
+            <span>Lv. 1</span>
+          </div>
+        </div>
+        <div class="player-settings-btn" id="btn-settings" title="Settings">⚙️</div>
+      </div>
+    </header>
+
+    <!-- Center logo + news ticker -->
+    <div class="menu-center">
+      <div class="menu-logo-area">
+        <img src="game_logo.png" alt="Bloons Reborn" class="menu-logo" />
+        <div class="menu-logo-subtitle">TOWER DEFENSE REIMAGINED</div>
+      </div>
+
+      <div class="news-ticker-wrap">
+        <span class="news-tag">NEWS</span>
+        <div class="news-ticker" id="news-ticker">
+          <span id="news-text">🎉 Welcome to Bloons Reborn! New maps, new monkeys, and the deadliest bloons ever created await you...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main nav buttons -->
+    <nav class="menu-nav" id="menu-nav">
+      <button class="menu-btn menu-btn--play" id="btn-play">
+        <span class="menu-btn-icon">▶</span>
+        <span class="menu-btn-label">PLAY</span>
+        <span class="menu-btn-sub">Select a Map</span>
+        <div class="menu-btn-shine"></div>
+      </button>
+
+      <div class="menu-btn-row">
+        <button class="menu-btn menu-btn--heroes" id="btn-heroes">
+          <span class="menu-btn-icon">🦸</span>
+          <span class="menu-btn-label">HEROES</span>
+          <div class="menu-btn-shine"></div>
+        </button>
+        <button class="menu-btn menu-btn--monkeys" id="btn-monkeys">
+          <span class="menu-btn-icon">🐒</span>
+          <span class="menu-btn-label">MONKEYS</span>
+          <div class="menu-btn-shine"></div>
+        </button>
+        <button class="menu-btn menu-btn--trophy" id="btn-trophy">
+          <span class="menu-btn-icon">🏆</span>
+          <span class="menu-btn-label">TROPHY STORE</span>
+          <div class="menu-btn-shine"></div>
+        </button>
+      </div>
+
+      <div class="menu-btn-row">
+        <button class="menu-btn menu-btn--daily" id="btn-daily">
+          <span class="menu-btn-icon">📅</span>
+          <span class="menu-btn-label">DAILY QUEST</span>
+          <div class="menu-btn-badge">!</div>
+          <div class="menu-btn-shine"></div>
+        </button>
+        <button class="menu-btn menu-btn--odyssey" id="btn-odyssey">
+          <span class="menu-btn-icon">🌊</span>
+          <span class="menu-btn-label">ODYSSEY</span>
+          <div class="menu-btn-shine"></div>
+        </button>
+        <button class="menu-btn menu-btn--coop" id="btn-coop">
+          <span class="menu-btn-icon">🤝</span>
+          <span class="menu-btn-label">CO-OP</span>
+          <div class="menu-btn-shine"></div>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Bottom strip -->
+    <footer class="menu-footer">
+      <button class="footer-btn" id="btn-achievements">🎖 Achievements</button>
+      <button class="footer-btn" id="btn-collection">📚 Collection</button>
+      <button class="footer-btn" id="btn-leaderboard">📊 Leaderboard</button>
+      <div class="footer-version">v0.1.0 Alpha · Bloons Reborn</div>
+    </footer>
+  </div>
+
+  <!-- ============================================================
+       SETTINGS MODAL
+  ============================================================ -->
+  <div id="modal-settings" class="modal hidden">
+    <div class="modal-backdrop" id="settings-backdrop"></div>
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 class="modal-title">SETTINGS</h2>
+        <button class="modal-close" id="btn-settings-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-row">
+          <label class="setting-label">Music Volume</label>
+          <input type="range" class="setting-slider" id="music-vol" min="0" max="100" value="80" />
+          <span class="setting-val" id="music-vol-val">80%</span>
+        </div>
+        <div class="setting-row">
+          <label class="setting-label">SFX Volume</label>
+          <input type="range" class="setting-slider" id="sfx-vol" min="0" max="100" value="90" />
+          <span class="setting-val" id="sfx-vol-val">90%</span>
+        </div>
+        <div class="setting-row">
+          <label class="setting-label">Particle Effects</label>
+          <div class="toggle-wrap">
+            <input type="checkbox" id="toggle-particles" class="toggle-input" checked />
+            <label for="toggle-particles" class="toggle-label"></label>
+          </div>
+        </div>
+        <div class="setting-row">
+          <label class="setting-label">Screen Shake</label>
+          <div class="toggle-wrap">
+            <input type="checkbox" id="toggle-shake" class="toggle-input" checked />
+            <label for="toggle-shake" class="toggle-label"></label>
+          </div>
+        </div>
+        <div class="setting-row">
+          <label class="setting-label">Fullscreen</label>
+          <button class="setting-btn" id="btn-fullscreen">Toggle Fullscreen</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn--primary" id="btn-settings-save">SAVE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coming Soon Toast -->
+  <div id="toast" class="toast hidden">
+    <span id="toast-msg">Coming soon!</span>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>

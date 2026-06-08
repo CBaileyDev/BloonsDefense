@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bloons Reborn</title>
+  <meta name="description" content="Bloons Reborn — Tower Defense Reimagined" />
+
+  <!-- Local fonts (offline) -->
+  <link rel="stylesheet" href="../node_modules/@fontsource/orbitron/700.css" />
+  <link rel="stylesheet" href="../node_modules/@fontsource/orbitron/900.css" />
+  <link rel="stylesheet" href="../node_modules/@fontsource/rajdhani/500.css" />
+  <link rel="stylesheet" href="../node_modules/@fontsource/rajdhani/600.css" />
+  <link rel="stylesheet" href="../node_modules/@fontsource/rajdhani/700.css" />
+  <link rel="stylesheet" href="../node_modules/@fontsource/cinzel-decorative/700.css" />
+  <link rel="stylesheet" href="../node_modules/@fontsource/inter/400.css" />
+  <link rel="stylesheet" href="../node_modules/@fontsource/inter/500.css" />
+  <link rel="stylesheet" href="../node_modules/@fontsource/inter/600.css" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- FPS Counter -->
+  <div id="fps-counter" class="hidden" aria-live="off">0 FPS</div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SPLASH / TITLE SCREEN
+       Canvas renders EVERYTHING: bg, stars, bloons, lightning, vignette
+  ══════════════════════════════════════════════════════════════ -->
+  <div id="screen-splash" class="screen active">
+    <canvas id="splash-canvas"></canvas>
+    <div class="splash-content">
+      <div class="splash-logo-wrap" id="splash-logo-wrap">
+        <img src="assets/images/game_logo.png" alt="Bloons Reborn" class="splash-logo" id="splash-logo-img" draggable="false" />
+      </div>
+      <p class="splash-subtitle" id="splash-subtitle">TOWER DEFENSE REIMAGINED</p>
+      <div class="splash-click-prompt" id="splash-click-prompt">
+        <div class="prompt-pulse"></div>
+        <span>CLICK ANYWHERE TO BEGIN</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       LOADING SCREEN
+       Canvas renders: hex grid, bloon parade, ambient particles
+       DOM only: text labels (progress bar, tip, status)
+  ══════════════════════════════════════════════════════════════ -->
+  <div id="screen-loading" class="screen">
+    <canvas id="loading-canvas"></canvas>
+    <div class="loading-content">
+      <div class="loading-wordmark">
+        <span class="loading-word-bloons">BLOONS</span>
+        <span class="loading-word-reborn">REBORN</span>
+      </div>
+      <div class="loading-bar-outer">
+        <div class="loading-bar-track">
+          <div class="loading-bar-fill" id="loading-bar-fill"></div>
+          <div class="loading-bar-sheen"></div>
+        </div>
+        <div class="loading-bar-labels">
+          <span class="loading-status" id="loading-status">Initializing…</span>
+          <span class="loading-pct" id="loading-pct">0%</span>
+        </div>
+      </div>
+      <div class="loading-tip-box">
+        <div class="loading-tip-badge">💡 TIP</div>
+        <div class="loading-tip-text" id="loading-tip-text">
+          Place towers near bends in the path for maximum dart coverage!
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       MAIN MENU
+       Canvas overlay: floating bloons + ambient particles
+       DOM: buttons, HUD, modals (no blur/backdrop-filter)
+  ══════════════════════════════════════════════════════════════ -->
+  <div id="screen-menu" class="screen">
+    <!-- Parallax background image (GPU transform only) -->
+    <div class="menu-bg-wrap">
+      <img src="assets/images/menu_bg.png" alt="" class="menu-bg-img" id="menu-bg-img" draggable="false" />
+      <div class="menu-bg-overlay"></div>
+    </div>
+
+    <!-- Canvas layer: bloons + particles -->
+    <canvas id="menu-canvas" class="menu-canvas-layer"></canvas>
+
+    <!-- Top HUD -->
+    <header class="menu-hud" id="menu-hud">
+      <div class="hud-left">
+        <div class="hud-currency" id="hud-cash">
+          <span class="hud-currency-icon">💰</span>
+          <span class="hud-currency-val" id="val-cash">0</span>
+        </div>
+        <div class="hud-currency" id="hud-gems">
+          <span class="hud-currency-icon">💎</span>
+          <span class="hud-currency-val" id="val-gems">250</span>
+        </div>
+        <div class="hud-currency" id="hud-trophies">
+          <span class="hud-currency-icon">🏆</span>
+          <span class="hud-currency-val" id="val-trophies">0</span>
+        </div>
+      </div>
+      <div class="hud-right">
+        <div class="hud-player-card">
+          <div class="hud-avatar">🐒</div>
+          <div class="hud-player-info">
+            <div class="hud-player-name">Commander</div>
+            <div class="hud-player-xp">
+              <div class="hud-xp-bar"><div class="hud-xp-fill" style="width:12%"></div></div>
+              <span class="hud-level">Lv. 1</span>
+            </div>
+          </div>
+        </div>
+        <button class="hud-icon-btn" id="btn-settings" title="Settings">⚙️</button>
+        <button class="hud-icon-btn" id="btn-fullscreen-toggle" title="Toggle Fullscreen">⛶</button>
+      </div>
+    </header>
+
+    <!-- Center: Logo + news -->
+    <div class="menu-center-panel">
+      <div class="menu-logo-area">
+        <img src="assets/images/game_logo.png" alt="Bloons Reborn" class="menu-logo" draggable="false" />
+        <div class="menu-tagline">TOWER DEFENSE REIMAGINED</div>
+        <div class="menu-platform-badge" id="platform-badge">macOS · M5 Optimized</div>
+      </div>
+      <div class="news-ribbon">
+        <div class="news-ribbon-label">📡 NEWS</div>
+        <div class="news-ribbon-track">
+          <div class="news-ribbon-text" id="news-ribbon-text"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nav buttons -->
+    <nav class="menu-nav" id="menu-nav">
+      <button class="nav-btn nav-btn--play" id="btn-play">
+        <div class="nav-btn-bg"></div>
+        <div class="nav-btn-content">
+          <span class="nav-btn-icon">▶</span>
+          <div class="nav-btn-labels">
+            <span class="nav-btn-title">PLAY</span>
+            <span class="nav-btn-sub">Select a Map & Mode</span>
+          </div>
+        </div>
+        <div class="nav-btn-shine"></div>
+        <div class="nav-btn-edge"></div>
+      </button>
+      <div class="nav-row">
+        <button class="nav-btn nav-btn--heroes" id="btn-heroes">
+          <div class="nav-btn-bg"></div>
+          <div class="nav-btn-content"><span class="nav-btn-icon">🦸</span><span class="nav-btn-title">HEROES</span></div>
+          <div class="nav-btn-shine"></div>
+        </button>
+        <button class="nav-btn nav-btn--monkeys" id="btn-monkeys">
+          <div class="nav-btn-bg"></div>
+          <div class="nav-btn-content"><span class="nav-btn-icon">🐒</span><span class="nav-btn-title">MONKEYS</span></div>
+          <div class="nav-btn-shine"></div>
+        </button>
+        <button class="nav-btn nav-btn--shop" id="btn-shop">
+          <div class="nav-btn-bg"></div>
+          <div class="nav-btn-content"><span class="nav-btn-icon">🏪</span><span class="nav-btn-title">STORE</span></div>
+          <div class="nav-btn-shine"></div>
+        </button>
+      </div>
+      <div class="nav-row">
+        <button class="nav-btn nav-btn--daily" id="btn-daily">
+          <div class="nav-btn-bg"></div>
+          <div class="nav-btn-content"><span class="nav-btn-icon">📅</span><span class="nav-btn-title">DAILY QUEST</span></div>
+          <div class="nav-btn-badge">NEW</div>
+          <div class="nav-btn-shine"></div>
+        </button>
+        <button class="nav-btn nav-btn--odyssey" id="btn-odyssey">
+          <div class="nav-btn-bg"></div>
+          <div class="nav-btn-content"><span class="nav-btn-icon">🌊</span><span class="nav-btn-title">ODYSSEY</span></div>
+          <div class="nav-btn-shine"></div>
+        </button>
+        <button class="nav-btn nav-btn--coop" id="btn-coop">
+          <div class="nav-btn-bg"></div>
+          <div class="nav-btn-content"><span class="nav-btn-icon">🤝</span><span class="nav-btn-title">CO-OP</span></div>
+          <div class="nav-btn-shine"></div>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Footer -->
+    <footer class="menu-footer">
+      <button class="footer-pill" id="btn-achievements">🎖 Achievements</button>
+      <button class="footer-pill" id="btn-collection">📚 Collection</button>
+      <button class="footer-pill" id="btn-leaderboard">📊 Leaderboard</button>
+      <div class="footer-spacer"></div>
+      <div class="footer-version">Bloons Reborn · v0.1.0 Alpha</div>
+    </footer>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="modal-settings" class="modal hidden" role="dialog">
+    <div class="modal-backdrop" id="settings-backdrop"></div>
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 class="modal-title">⚙️ SETTINGS</h2>
+        <button class="modal-close-btn" id="btn-settings-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-section-label">AUDIO</div>
+        <div class="setting-row">
+          <label class="setting-label" for="music-vol">Music Volume</label>
+          <div class="setting-control">
+            <input type="range" class="setting-slider" id="music-vol" min="0" max="100" value="80" />
+            <span class="setting-val" id="music-vol-val">80%</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <label class="setting-label" for="sfx-vol">SFX Volume</label>
+          <div class="setting-control">
+            <input type="range" class="setting-slider" id="sfx-vol" min="0" max="100" value="90" />
+            <span class="setting-val" id="sfx-vol-val">90%</span>
+          </div>
+        </div>
+        <div class="settings-section-label" style="margin-top:20px">DISPLAY</div>
+        <div class="setting-row">
+          <label class="setting-label">Particle Effects</label>
+          <div class="setting-control">
+            <div class="toggle-wrap">
+              <input type="checkbox" id="toggle-particles" class="toggle-input" checked />
+              <label for="toggle-particles" class="toggle-label"></label>
+            </div>
+          </div>
+        </div>
+        <div class="setting-row">
+          <label class="setting-label">Screen Shake</label>
+          <div class="setting-control">
+            <div class="toggle-wrap">
+              <input type="checkbox" id="toggle-shake" class="toggle-input" checked />
+              <label for="toggle-shake" class="toggle-label"></label>
+            </div>
+          </div>
+        </div>
+        <div class="setting-row">
+          <label class="setting-label">Show FPS Counter</label>
+          <div class="setting-control">
+            <div class="toggle-wrap">
+              <input type="checkbox" id="toggle-fps" class="toggle-input" />
+              <label for="toggle-fps" class="toggle-label"></label>
+            </div>
+          </div>
+        </div>
+        <div class="setting-row">
+          <label class="setting-label">Fullscreen</label>
+          <div class="setting-control">
+            <button class="setting-action-btn" id="btn-fs-modal">Toggle Fullscreen</button>
+          </div>
+        </div>
+        <div class="settings-section-label" style="margin-top:20px">SYSTEM</div>
+        <div class="setting-row">
+          <label class="setting-label">Platform</label>
+          <div class="setting-control">
+            <span class="setting-info" id="platform-info-modal">Detecting…</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-cancel-btn" id="btn-settings-cancel">CANCEL</button>
+        <button class="modal-save-btn" id="btn-settings-save">SAVE SETTINGS</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" role="status">
+    <span id="toast-icon">🔔</span>
+    <span id="toast-msg">Coming soon!</span>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
