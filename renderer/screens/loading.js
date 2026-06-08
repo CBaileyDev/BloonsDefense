@@ -1,6 +1,6 @@
 // screens/loading.js
-// GPU-accelerated loading screen — canvas-only bloon parade, hex grid, energy bar
-// Zero DOM animation, single game loop system
+// GPU-accelerated loading screen — forest background art (DOM) with a canvas
+// layer of drifting fireflies + a low bloon parade. Single game-loop system.
 
 import { ParticlePool, drawBloon } from '../engine/renderer.js';
 import { addSystem, removeSystem, addRenderSystem, removeRenderSystem, getFPS, isFPSVisible } from '../engine/game-loop.js';
