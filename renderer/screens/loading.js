@@ -70,9 +70,6 @@ const paradeSize   = new Float32Array(PARADE_MAX);
 const paradeSpeed  = new Float32Array(PARADE_MAX);
 const paradeBob    = new Float32Array(PARADE_MAX);
 
-// Hex grid state
-let hexPhase = 0;
-
 // Cached geometry of the progress bar track (avoids per-frame layout reflow).
 // Invalidated on resize and re-read lazily once the element has a real size.
 let barTrackRect = null;
@@ -89,7 +86,6 @@ export function initLoading(onComplete) {
   tipIdx    = 0;
   nextTip   = 3;
   resolved  = false;
-  hexPhase  = 0;
   onDoneCb  = onComplete;
 
   // Init parade
@@ -190,7 +186,6 @@ function _update(dt) {
   }
   const W = pool.W;
   const H = pool.H;
-  hexPhase += dt;
 
   // Smooth progress bar
   progress += (targetPct - progress) * dt * 4;
@@ -239,10 +234,11 @@ function _update(dt) {
         const angle = (Math.random() - 0.5) * Math.PI;
         const speed = Math.random() * 2 + 1;
         
-        // Color palette matching the loading progress gradient (purple to cyan)
-        const rVal = Math.random() < 0.5 ? 6 : 124;
-        const gVal = Math.random() < 0.5 ? 182 : 58;
-        const bVal = Math.random() < 0.5 ? 212 : 237;
+        // Forest firefly palette matching the progress gradient (mint to gold)
+        const gold = Math.random() < 0.5;
+        const rVal = gold ? 245 : 52;
+        const gVal = gold ? 200 : 211;
+        const bVal = gold ? 90  : 153;
 
         pool.emitOne({
           x: ex + (Math.random() - 0.5) * 4,
@@ -276,6 +272,8 @@ function _update(dt) {
 }
 
 // ── Render (once per frame) ─────────────────────────────────────────────────────
+// The canvas is transparent and composites on top of the forest background image
+// (DOM layer behind it), so we only draw the ambient fireflies + bloon parade.
 function _draw(W, H) {
   if (!pool) return;
   const ctx = pool.ctx;
@@ -283,31 +281,10 @@ function _draw(W, H) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, W, H);
 
-  // A. Background
-  const bg = ctx.createLinearGradient(0, 0, W * 0.3, H);
-  bg.addColorStop(0, '#08081a');
-  bg.addColorStop(0.5, '#0d0b2a');
-  bg.addColorStop(1, '#08081a');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
-
-  // B. Hex grid
-  _drawHexGrid(ctx, W, H);
-
-  // C. Center glow
-  ctx.globalAlpha = 0.15;
-  const cg = ctx.createRadialGradient(W * 0.5, H * 0.4, 0, W * 0.5, H * 0.4, 300);
-  cg.addColorStop(0, 'rgba(124,58,237,0.4)');
-  cg.addColorStop(0.5, 'rgba(6,182,212,0.15)');
-  cg.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = cg;
-  ctx.fillRect(0, 0, W, H);
-  ctx.globalAlpha = 1;
-
-  // D. Particles
+  // Ambient particles (energy sparks / fireflies)
   pool.draw();
 
-  // E. Bloon parade at bottom
+  // Bloon parade drifting along the forest path
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const paradeY0 = H - 55;
   for (let i = 0; i < PARADE_MAX; i++) {
@@ -315,88 +292,6 @@ function _draw(W, H) {
     const by = paradeY0 + Math.sin(paradeBob[i]) * 6;
     drawBloon(ctx, paradeX[i], by, paradeSize[i], def.r, def.g, def.b, 0.6);
   }
-
-  // F. Scanline overlay
-  ctx.globalAlpha = 0.03;
-  ctx.fillStyle = '#000';
-  for (let y = 0; y < H; y += 4) {
-    ctx.fillRect(0, y, W, 2);
-  }
-  ctx.globalAlpha = 1;
-}
-
-function _drawHexGrid(ctx, W, H) {
-  ctx.save();
-  
-  // Pulse frequency speeds up as loading progress completes
-  const pulseFreq = 1.5 + (progress / 100) * 3.5;
-  const pulseFactor = Math.sin(hexPhase * pulseFreq);
-  
-  // Shift color from purple (124, 58, 237) to cyan (6, 182, 212) based on progress
-  const ratio = progress / 100;
-  const rColor = Math.round(124 * (1 - ratio) + 6 * ratio);
-  const gColor = Math.round(58 * (1 - ratio) + 182 * ratio);
-  const bColor = Math.round(237 * (1 - ratio) + 212 * ratio);
-  
-  // Pulse opacity in sync with progress percentage
-  const minAlpha = 0.04;
-  const maxAlpha = 0.04 + ratio * 0.12;
-  const baseAlpha = minAlpha + (pulseFactor * 0.5 + 0.5) * (maxAlpha - minAlpha);
-
-  const hexR = 40;
-  const hexW = hexR * 2;
-  const hexH = Math.sqrt(3) * hexR;
-  const cols = Math.ceil(W / (hexW * 0.75)) + 2;
-  const rows = Math.ceil(H / hexH) + 2;
-  const scrollY = (hexPhase * 15) % hexH;
-
-  // Energy sweep wave position moving top-to-bottom across the screen
-  const sweepY = (hexPhase * 180) % (H + 300) - 150;
-
-  for (let row = -1; row < rows; row++) {
-    for (let col = -1; col < cols; col++) {
-      const ox = col * hexW * 0.75;
-      const oy = row * hexH + (col % 2 ? hexH * 0.5 : 0) - scrollY;
-      
-      // Calculate distance from this cell to the energy sweep wave front
-      const dist = Math.abs(oy - sweepY);
-      const sweepHighlight = dist < 160 ? (1 - dist / 160) : 0;
-      const finalAlpha = Math.min(1.0, baseAlpha + sweepHighlight * 0.28);
-      
-      ctx.strokeStyle = `rgba(${rColor},${gColor},${bColor},${finalAlpha})`;
-      ctx.lineWidth = 0.5 + sweepHighlight * 1.5;
-      
-      _hexPath(ctx, ox, oy, hexR);
-      ctx.stroke();
-      
-      // Add glowing grid cell fill when the energy wave sweeps past
-      if (sweepHighlight > 0.05) {
-        ctx.fillStyle = `rgba(${rColor},${gColor},${bColor},${sweepHighlight * 0.04})`;
-        ctx.fill();
-      }
-    }
-  }
-  
-  // Draw the bright visual line of the energy sweep wave itself
-  const sweepGrad = ctx.createLinearGradient(0, sweepY - 30, 0, sweepY + 30);
-  sweepGrad.addColorStop(0, `rgba(${rColor},${gColor},${bColor},0)`);
-  sweepGrad.addColorStop(0.5, `rgba(${rColor},${gColor},${bColor},${0.18 + ratio * 0.15})`);
-  sweepGrad.addColorStop(1, `rgba(${rColor},${gColor},${bColor},0)`);
-  ctx.fillStyle = sweepGrad;
-  ctx.fillRect(0, sweepY - 30, W, 60);
-
-  ctx.restore();
-}
-
-function _hexPath(ctx, cx, cy, r) {
-  ctx.beginPath();
-  for (let i = 0; i < 6; i++) {
-    const ang = (Math.PI / 3) * i - Math.PI / 6;
-    const x = cx + r * Math.cos(ang);
-    const y = cy + r * Math.sin(ang);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  }
-  ctx.closePath();
 }
 
 function _resetParade(i, seed) {
