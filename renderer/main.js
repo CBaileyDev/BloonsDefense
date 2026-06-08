@@ -50,8 +50,8 @@ function boot() {
   });
 }
 
-async function startLoadingPhase() {
-  await initLoading(() => {
+function startLoadingPhase() {
+  initLoading(() => {
     destroyLoading();
     goTo('menu');
     initMenu();

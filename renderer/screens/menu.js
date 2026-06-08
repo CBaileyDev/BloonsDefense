@@ -2,7 +2,7 @@
 // Main menu — GPU canvas bloons, parallax via canvas transform, no backdrop-filter
 
 import { ParticlePool, drawBloon } from '../engine/renderer.js';
-import { addSystem, removeSystem, getFPS, isFPSVisible, toggleFPS } from '../engine/game-loop.js';
+import { addSystem, removeSystem, addRenderSystem, removeRenderSystem, getFPS, isFPSVisible, toggleFPS } from '../engine/game-loop.js';
 
 // ── Floating bloons (canvas) ──────────────────────────────────────────────────
 const BLOON_DEFS = [
@@ -29,10 +29,19 @@ const fPhase = new Float32Array(MAX_FLOATERS);
 const fAlpha = new Float32Array(MAX_FLOATERS);
 
 let pool        = null;
-let systemFn    = null;
+let updateFn    = null;
+let renderFn    = null;
 let elapsedT    = 0;
 let toastTimeout = null;
 let lastFPS     = -1;
+
+// Tracked DOM listeners so destroyMenu() can tear them all down (no leaks on re-entry)
+const _domListeners = [];
+function _on(el, type, fn) {
+  if (!el) return;
+  el.addEventListener(type, fn);
+  _domListeners.push({ el, type, fn });
+}
 
 // Parallax
 let mouseX = 0.5, mouseY = 0.5;
@@ -48,12 +57,14 @@ export function initMenu() {
     // Init floaters
     for (let i = 0; i < MAX_FLOATERS; i++) _resetFloater(i, true);
 
-    systemFn = (dt) => _tick(dt);
-    addSystem(systemFn);
+    updateFn = (dt) => _update(dt);
+    renderFn = () => { if (pool) _draw(pool.W, pool.H); };
+    addSystem(updateFn);
+    addRenderSystem(renderFn);
   }
 
   // Parallax mouse tracking (via CSS transform on bg image, not canvas)
-  document.getElementById('screen-menu')?.addEventListener('mousemove', _onMouse);
+  _on(document.getElementById('screen-menu'), 'mousemove', _onMouse);
 
   _initSettings();
   _initFullscreen();
@@ -63,9 +74,15 @@ export function initMenu() {
 }
 
 export function destroyMenu() {
-  if (systemFn) removeSystem(systemFn);
+  if (updateFn) removeSystem(updateFn);
+  if (renderFn) removeRenderSystem(renderFn);
   if (pool) pool.destroy();
-  document.getElementById('screen-menu')?.removeEventListener('mousemove', _onMouse);
+
+  // Tear down all tracked DOM listeners (parallax, settings, nav stubs, news, etc.)
+  while (_domListeners.length) {
+    const { el, type, fn } = _domListeners.pop();
+    el.removeEventListener(type, fn);
+  }
 
   // Clean up nav button tilt listeners
   const navButtons = document.querySelectorAll('.nav-btn');
@@ -76,7 +93,8 @@ export function destroyMenu() {
     btn._onMouseLeave = null;
   });
 
-  systemFn = null;
+  updateFn = null;
+  renderFn = null;
   pool = null;
 }
 
@@ -88,8 +106,8 @@ function _onMouse(e) {
   mouseY = e.clientY / H;
 }
 
-// ── Tick ───────────────────────────────────────────────────────────────────────
-function _tick(dt) {
+// ── Update (fixed timestep) ─────────────────────────────────────────────────────
+function _update(dt) {
   if (!pool) return;
   elapsedT += dt;
   const W = pool.W;
@@ -147,10 +165,11 @@ function _tick(dt) {
   }
 
   pool.update(dt);
-  _draw(W, H);
 }
 
+// ── Render (once per frame) ─────────────────────────────────────────────────────
 function _draw(W, H) {
+  if (!pool) return;
   const ctx = pool.ctx;
   const dpr = pool._dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -206,13 +225,13 @@ function _initSettings() {
   };
   const close = () => modal?.classList.add('hidden');
 
-  document.getElementById('btn-settings')?.addEventListener('click', open);
-  document.getElementById('btn-settings-close')?.addEventListener('click', close);
-  document.getElementById('btn-settings-cancel')?.addEventListener('click', close);
-  backdrop?.addEventListener('click', close);
+  _on(document.getElementById('btn-settings'), 'click', open);
+  _on(document.getElementById('btn-settings-close'), 'click', close);
+  _on(document.getElementById('btn-settings-cancel'), 'click', close);
+  _on(backdrop, 'click', close);
 
   if (fpsToggle) {
-    fpsToggle.addEventListener('change', () => {
+    _on(fpsToggle, 'change', () => {
       const visible = isFPSVisible();
       if (fpsToggle.checked !== visible) {
         toggleFPS();
@@ -220,7 +239,7 @@ function _initSettings() {
     });
   }
 
-  document.getElementById('btn-settings-save')?.addEventListener('click', () => {
+  _on(document.getElementById('btn-settings-save'), 'click', () => {
     close();
     showToast('Settings saved!', '✅');
   });
@@ -229,17 +248,17 @@ function _initSettings() {
     const slider = document.getElementById(id);
     const valEl  = document.getElementById(id + '-val');
     if (!slider || !valEl) return;
-    slider.addEventListener('input', () => {
+    _on(slider, 'input', () => {
       valEl.textContent = slider.value + '%';
     });
   });
 
-  document.getElementById('btn-fs-modal')?.addEventListener('click', _doFullscreen);
+  _on(document.getElementById('btn-fs-modal'), 'click', _doFullscreen);
 }
 
 // ── Fullscreen ────────────────────────────────────────────────────────────────
 function _initFullscreen() {
-  document.getElementById('btn-fullscreen-toggle')?.addEventListener('click', _doFullscreen);
+  _on(document.getElementById('btn-fullscreen-toggle'), 'click', _doFullscreen);
 }
 
 async function _doFullscreen() {
@@ -268,7 +287,7 @@ function _initNavButtons() {
   ];
 
   stubs.forEach(([id, msg, icon]) => {
-    document.getElementById(id)?.addEventListener('click', () => showToast(msg, icon));
+    _on(document.getElementById(id), 'click', () => showToast(msg, icon));
   });
 
   // 3D Tilt Effect on hover

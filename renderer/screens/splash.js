@@ -4,7 +4,7 @@
 //           shifting multi-layered nebula background, shooting stars, and procedural logo/title.
 
 import { ParticlePool, drawBloon, drawLightning } from '../engine/renderer.js';
-import { addSystem, removeSystem } from '../engine/game-loop.js';
+import { addSystem, removeSystem, addRenderSystem, removeRenderSystem } from '../engine/game-loop.js';
 
 // ── Bloon definitions ─────────────────────────────────────────────────────────
 const BLOON_DEFS = [
@@ -20,7 +20,8 @@ const BLOON_DEFS = [
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let pool       = null;
-let systemFn   = null;
+let updateFn   = null;
+let renderFn   = null;
 let elapsedT   = 0;
 let ready      = false; // true once intro animation done
 
@@ -35,9 +36,6 @@ const bloonType = new Uint8Array(MAX_BLOONS);  // index into BLOON_DEFS
 const bloonSize = new Float32Array(MAX_BLOONS);
 const bloonPhase= new Float32Array(MAX_BLOONS); // for wobble
 let bloonCount  = 0;
-
-// Lightning state
-let nextLightning = 0;
 
 // Energy rings (expanding outward from logo)
 const MAX_RINGS = 4;
@@ -102,7 +100,6 @@ export function initSplash(onComplete) {
   bloonCount = 0;
   ringCount  = 0;
   nextRing   = 2.0;
-  nextLightning = 1.5;
 
   portalCount = 0;
   rippleCount = 0;
@@ -156,9 +153,11 @@ export function initSplash(onComplete) {
     }
   }, 2000);
 
-  // System tick
-  systemFn = (dt) => _tick(dt);
-  addSystem(systemFn);
+  // Fixed-step update + once-per-frame render
+  updateFn = (dt) => _update(dt);
+  renderFn = () => { if (pool) _draw(pool.W, pool.H); };
+  addSystem(updateFn);
+  addRenderSystem(renderFn);
 
   // Redesigned transitions and interactions
   const startTransition = (mx, my) => {
@@ -224,9 +223,11 @@ export function initSplash(onComplete) {
 export function destroySplash() { _cleanup(); }
 
 function _cleanup() {
-  if (systemFn) removeSystem(systemFn);
+  if (updateFn) removeSystem(updateFn);
+  if (renderFn) removeRenderSystem(renderFn);
   if (pool) pool.destroy();
-  systemFn = null;
+  updateFn = null;
+  renderFn = null;
   pool     = null;
 
   const screen = document.getElementById('screen-splash');
@@ -241,8 +242,8 @@ function _cleanup() {
   keyHandler = null;
 }
 
-// ── Tick ───────────────────────────────────────────────────────────────────────
-function _tick(dt) {
+// ── Update (fixed timestep) ─────────────────────────────────────────────────────
+function _update(dt) {
   if (!pool) return;
   elapsedT += dt;
   if (transitioning) {
@@ -251,17 +252,12 @@ function _tick(dt) {
   const W = pool.W;
   const H = pool.H;
 
-  // 1. Spawn ambient stars (2-3 per frame)
+  // 1. Spawn ambient stars (a few per step)
   for (let i = 0; i < 3; i++) {
     _emitStar(W, H, false);
   }
 
-  // 2. Lightning bolts
-  if (elapsedT > nextLightning) {
-    nextLightning = elapsedT + 0.8 + Math.random() * 2.5;
-  }
-
-  // 3. Energy rings around logo center
+  // 2. Energy rings around logo center
   if (elapsedT > nextRing && ringCount < MAX_RINGS) {
     ringRadius[ringCount] = 0;
     ringLife[ringCount]   = 1;
@@ -355,12 +351,11 @@ function _tick(dt) {
 
   // 9. Update particles
   pool.update(dt);
-
-  // 10. Draw
-  _draw(W, H);
 }
 
+// ── Render (once per frame) ─────────────────────────────────────────────────────
 function _draw(W, H) {
+  if (!pool) return;
   const ctx = pool.ctx;
   const dpr = pool._dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
