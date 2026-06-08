@@ -5,12 +5,14 @@ import { start as startLoop, stop as stopLoop, toggleFPS } from './engine/game-l
 import { initSplash, destroySplash } from './screens/splash.js';
 import { initLoading, destroyLoading } from './screens/loading.js';
 import { initMenu, destroyMenu } from './screens/menu.js';
+import { initPrototype, destroyPrototype } from './screens/prototype.js';
 
 // ── Screen registry ───────────────────────────────────────────────────────────
 const SCREENS = {
-  splash:  document.getElementById('screen-splash'),
-  loading: document.getElementById('screen-loading'),
-  menu:    document.getElementById('screen-menu'),
+  splash:    document.getElementById('screen-splash'),
+  loading:   document.getElementById('screen-loading'),
+  menu:      document.getElementById('screen-menu'),
+  prototype: document.getElementById('screen-prototype'),
 };
 
 let currentScreen = null;
@@ -53,9 +55,26 @@ function boot() {
 function startLoadingPhase() {
   initLoading(() => {
     destroyLoading();
-    goTo('menu');
-    initMenu();
+    enterMenu();
   });
+}
+
+// Menu ⇄ Prototype navigation. PLAY launches "The Hollow" vibe slice;
+// ESC / Return there brings us back to the menu.
+function enterMenu() {
+  goTo('menu');
+  initMenu(launchPrototype);
+}
+
+function launchPrototype() {
+  destroyMenu();
+  goTo('prototype');
+  initPrototype(returnToMenu);
+}
+
+function returnToMenu() {
+  destroyPrototype();
+  enterMenu();
 }
 
 // ── Global keyboard ───────────────────────────────────────────────────────────
@@ -72,7 +91,8 @@ document.addEventListener('keydown', e => {
     if (modal && !modal.classList.contains('hidden')) modal.classList.add('hidden');
   }
 
-  if (e.key.toLowerCase() === 'f' || e.key.toLowerCase() === 'd') {
+  // FPS toggle on F only — D is reserved for movement in playable screens.
+  if (e.key.toLowerCase() === 'f' && !e.repeat) {
     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
       toggleFPS();
     }

@@ -90,6 +90,11 @@ let clickHandler = null;
 let mouseMoveHandler = null;
 let keyHandler = null;
 
+// Pending timers + completion guard (so teardown can't leave them dangling)
+let promptTimeout = null;
+let transitionTimeout = null;
+let completed = false;
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 export function initSplash(onComplete) {
   const canvas = document.getElementById('splash-canvas');
@@ -106,6 +111,9 @@ export function initSplash(onComplete) {
   shootCount = 0;
   transitioning = false;
   transitionElapsed = 0;
+  completed = false;
+  promptTimeout = null;
+  transitionTimeout = null;
 
   logoImg = document.getElementById('splash-logo-img');
 
@@ -138,12 +146,13 @@ export function initSplash(onComplete) {
   bloonCount = MAX_BLOONS;
 
   // Seed initial starfield particles
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < 160; i++) {
     _emitStar(pool.W, pool.H, true);
   }
 
   // Fade in the prompt after 2s
-  setTimeout(() => {
+  promptTimeout = setTimeout(() => {
+    promptTimeout = null;
     if (transitioning) return;
     ready = true;
     const prompt = document.getElementById('splash-click-prompt');
@@ -176,8 +185,11 @@ export function initSplash(onComplete) {
     _addRipple(mx, my, 1);
     _spawnClickBurst(mx, my);
 
-    // Complete transition after 800ms
-    setTimeout(() => {
+    // Complete transition after 800ms (guarded against double-fire)
+    transitionTimeout = setTimeout(() => {
+      transitionTimeout = null;
+      if (completed) return;
+      completed = true;
       _cleanup();
       onComplete();
     }, 800);
@@ -226,6 +238,8 @@ function _cleanup() {
   if (updateFn) removeSystem(updateFn);
   if (renderFn) removeRenderSystem(renderFn);
   if (pool) pool.destroy();
+  if (promptTimeout) { clearTimeout(promptTimeout); promptTimeout = null; }
+  if (transitionTimeout) { clearTimeout(transitionTimeout); transitionTimeout = null; }
   updateFn = null;
   renderFn = null;
   pool     = null;
@@ -252,10 +266,9 @@ function _update(dt) {
   const W = pool.W;
   const H = pool.H;
 
-  // 1. Spawn ambient stars (a few per step)
-  for (let i = 0; i < 3; i++) {
-    _emitStar(W, H, false);
-  }
+  // 1. Spawn ambient stars. The fixed loop steps at 120Hz, so one per step is
+  //    already ~120/s — plenty, and keeps the pool from saturating.
+  _emitStar(W, H, false);
 
   // 2. Energy rings around logo center
   if (elapsedT > nextRing && ringCount < MAX_RINGS) {

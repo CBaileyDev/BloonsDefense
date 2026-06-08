@@ -1,24 +1,24 @@
 // screens/menu.js
-// Main menu — GPU canvas bloons, parallax via canvas transform, no backdrop-filter
+// Main menu — GPU canvas wisps, parallax via CSS transform, no backdrop-filter
 
-import { ParticlePool, drawBloon } from '../engine/renderer.js';
+import { ParticlePool } from '../engine/renderer.js';
 import { addSystem, removeSystem, addRenderSystem, removeRenderSystem, getFPS, isFPSVisible, toggleFPS } from '../engine/game-loop.js';
 
-// ── Floating bloons (canvas) ──────────────────────────────────────────────────
-const BLOON_DEFS = [
-  { r: 231, g: 76,  b: 60  },
-  { r: 52,  g: 152, b: 219 },
-  { r: 39,  g: 174, b: 96  },
-  { r: 243, g: 156, b: 18  },
-  { r: 155, g: 89,  b: 182 },
-  { r: 230, g: 126, b: 34  },
-  { r: 26,  g: 188, b: 156 },
-  { r: 253, g: 121, b: 168 },
-  { r: 108, g: 92,  b: 231 },
-  { r: 162, g: 155, b: 254 },
+// ── Drifting forest wisps (canvas) ────────────────────────────────────────────
+// Soft glowing motes that rise through the enchanted forest — gold/amber light,
+// mint & emerald spores, bioluminescent teal, with a sparing violet (the
+// mushroom glow from the art). Each wisp is one radial gradient + a bright core,
+// far cheaper than the old multi-gradient balloons and squarely on-theme.
+const WISP_DEFS = [
+  { r: 255, g: 214, b: 120 }, // warm gold
+  { r: 245, g: 180, b: 90  }, // amber
+  { r: 130, g: 240, b: 200 }, // mint
+  { r: 80,  g: 220, b: 150 }, // emerald
+  { r: 94,  g: 234, b: 212 }, // bioluminescent teal
+  { r: 180, g: 150, b: 240 }, // faint violet (mushroom echo)
 ];
 
-const MAX_FLOATERS = 18;
+const MAX_FLOATERS = 10;
 const fX     = new Float32Array(MAX_FLOATERS);
 const fY     = new Float32Array(MAX_FLOATERS);
 const fVx    = new Float32Array(MAX_FLOATERS);
@@ -34,6 +34,9 @@ let renderFn    = null;
 let elapsedT    = 0;
 let toastTimeout = null;
 let lastFPS     = -1;
+let onPlay      = null;   // launch callback supplied by the router
+let bgImgEl     = null;   // cached DOM refs (avoid per-frame getElementById)
+let fpsEl       = null;
 
 // Tracked DOM listeners so destroyMenu() can tear them all down (no leaks on re-entry)
 const _domListeners = [];
@@ -48,8 +51,12 @@ let mouseX = 0.5, mouseY = 0.5;
 let smoothX = 0.5, smoothY = 0.5;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-export function initMenu() {
-  // Canvas overlay for floating bloons + ambient particles
+export function initMenu(playCb = null) {
+  onPlay = playCb;
+  // Canvas overlay for floating wisps + ambient particles
+  bgImgEl = document.getElementById('menu-bg-img');
+  fpsEl   = document.getElementById('fps-counter');
+
   const canvas = document.getElementById('menu-canvas');
   if (canvas) {
     pool = new ParticlePool(canvas, 600);
@@ -58,7 +65,7 @@ export function initMenu() {
     for (let i = 0; i < MAX_FLOATERS; i++) _resetFloater(i, true);
 
     updateFn = (dt) => _update(dt);
-    renderFn = () => { if (pool) _draw(pool.W, pool.H); };
+    renderFn = (fdt) => { if (pool) _draw(pool.W, pool.H, fdt); };
     addSystem(updateFn);
     addRenderSystem(renderFn);
   }
@@ -84,18 +91,25 @@ export function destroyMenu() {
     el.removeEventListener(type, fn);
   }
 
-  // Clean up nav button tilt listeners
+  // Clean up nav button tilt listeners + reset any stuck inline tilt transform
+  // (mouseleave never fires if you click PLAY mid-hover).
   const navButtons = document.querySelectorAll('.nav-btn');
   navButtons.forEach(btn => {
     if (btn._onMouseMove) btn.removeEventListener('mousemove', btn._onMouseMove);
     if (btn._onMouseLeave) btn.removeEventListener('mouseleave', btn._onMouseLeave);
     btn._onMouseMove = null;
     btn._onMouseLeave = null;
+    btn.style.transform = '';
+    btn.style.removeProperty('--mouse-x');
+    btn.style.removeProperty('--mouse-y');
   });
 
   updateFn = null;
   renderFn = null;
   pool = null;
+  onPlay = null;
+  bgImgEl = null;
+  fpsEl = null;
 }
 
 // ── Mouse handler for parallax ────────────────────────────────────────────────
@@ -113,26 +127,13 @@ function _update(dt) {
   const W = pool.W;
   const H = pool.H;
 
-  // Update FPS counter
-  const fpsEl = document.getElementById('fps-counter');
+  // Update FPS counter (cached element)
   if (fpsEl && isFPSVisible()) {
     const current = getFPS();
     if (current !== lastFPS) {
       fpsEl.textContent = `${current} FPS`;
       lastFPS = current;
     }
-  }
-
-  // Smooth parallax
-  smoothX += (mouseX - smoothX) * dt * 3;
-  smoothY += (mouseY - smoothY) * dt * 3;
-
-  // Apply parallax to bg image via CSS transform (cheap, GPU-composited)
-  const bg = document.getElementById('menu-bg-img');
-  if (bg) {
-    const px = -(smoothX - 0.5) * 24;
-    const py = -(smoothY - 0.5) * 16;
-    bg.style.transform = `translate(calc(-5% + ${px}px), calc(-5% + ${py}px)) scale(1.1)`;
   }
 
   // Update floaters
@@ -144,7 +145,7 @@ function _update(dt) {
     // Fade in/out at edges
     const distFromTop = fY[i] / H;
     const distFromBot = 1 - distFromTop;
-    fAlpha[i] = Math.min(1, distFromBot * 5, distFromTop * 5) * 0.55;
+    fAlpha[i] = Math.min(1, distFromBot * 5, distFromTop * 5) * 0.7;
 
     if (fY[i] < -80) _resetFloater(i, false);
   }
@@ -172,36 +173,64 @@ function _update(dt) {
 }
 
 // ── Render (once per frame) ─────────────────────────────────────────────────────
-function _draw(W, H) {
+function _draw(W, H, fdt = 0.016) {
   if (!pool) return;
   const ctx = pool.ctx;
   const dpr = pool._dpr;
+
+  // Parallax — runs once per rendered frame (not in the 120Hz fixed update),
+  // so we write the bg transform at most once per frame instead of twice.
+  smoothX += (mouseX - smoothX) * Math.min(1, fdt * 3);
+  smoothY += (mouseY - smoothY) * Math.min(1, fdt * 3);
+  if (bgImgEl) {
+    const px = -(smoothX - 0.5) * 24;
+    const py = -(smoothY - 0.5) * 16;
+    bgImgEl.style.transform = `translate(calc(-5% + ${px}px), calc(-5% + ${py}px)) scale(1.1)`;
+  }
+
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, W, H);
 
   // Ambient particles
   pool.draw();
 
-  // Floating bloons
+  // Drifting wisps
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   for (let i = 0; i < MAX_FLOATERS; i++) {
     if (fAlpha[i] < 0.01) continue;
-    const def = BLOON_DEFS[fType[i]];
-    drawBloon(ctx, fX[i], fY[i], fSize[i], def.r, def.g, def.b, fAlpha[i]);
+    const def = WISP_DEFS[fType[i]];
+    _drawWisp(ctx, fX[i], fY[i], fSize[i], def.r, def.g, def.b, fAlpha[i]);
   }
+}
+
+// Cheap glowing mote: one radial gradient halo + a bright core.
+function _drawWisp(ctx, x, y, size, r, g, b, alpha) {
+  const grad = ctx.createRadialGradient(x, y, 0, x, y, size);
+  grad.addColorStop(0,    `rgba(${r},${g},${b},${alpha * 0.85})`);
+  grad.addColorStop(0.35, `rgba(${r},${g},${b},${alpha * 0.32})`);
+  grad.addColorStop(1,    `rgba(${r},${g},${b},0)`);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(x, y, size, 0, 6.2832);
+  ctx.fill();
+
+  ctx.fillStyle = `rgba(255,255,255,${alpha * 0.8})`;
+  ctx.beginPath();
+  ctx.arc(x, y, size * 0.16, 0, 6.2832);
+  ctx.fill();
 }
 
 function _resetFloater(i, seed) {
   const W = pool?.W ?? 1440;
   const H = pool?.H ?? 900;
-  fType[i]  = (Math.random() * BLOON_DEFS.length) | 0;
-  fSize[i]  = 14 + Math.random() * 24;
+  fType[i]  = (Math.random() * WISP_DEFS.length) | 0;
+  fSize[i]  = 9 + Math.random() * 15;
   fPhase[i] = Math.random() * 6.28;
   fAlpha[i] = 0;
   fX[i]     = Math.random() * W;
   fY[i]     = seed ? Math.random() * H : H + 20 + Math.random() * 80;
-  fVx[i]    = (Math.random() - 0.5) * 0.25;
-  fVy[i]    = -(Math.random() * 0.4 + 0.15);
+  fVx[i]    = (Math.random() - 0.5) * 0.22;
+  fVy[i]    = -(Math.random() * 0.32 + 0.12);
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
@@ -277,8 +306,13 @@ async function _doFullscreen() {
 
 // ── Nav buttons ───────────────────────────────────────────────────────────────
 function _initNavButtons() {
+  // PLAY launches the playable prototype ("The Hollow"); the rest are stubs.
+  _on(document.getElementById('btn-play'), 'click', () => {
+    if (onPlay) onPlay();
+    else showToast('Map Selection is coming soon! 🗺️', '🗺️');
+  });
+
   const stubs = [
-    ['btn-play',         'Map Selection is coming soon! 🗺️',      '🗺️'],
     ['btn-heroes',       'Heroes are being trained… 🦸',           '🦸'],
     ['btn-monkeys',      'Monkey Upgrades coming in v0.2! 🐒',     '🐒'],
     ['btn-shop',         'Trophy Store opens soon! 🏪',            '🏪'],

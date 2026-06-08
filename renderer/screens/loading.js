@@ -1,6 +1,6 @@
 // screens/loading.js
-// GPU-accelerated loading screen — canvas-only bloon parade, hex grid, energy bar
-// Zero DOM animation, single game loop system
+// GPU-accelerated loading screen — forest background art (DOM) with a canvas
+// layer of drifting fireflies + a low bloon parade. Single game-loop system.
 
 import { ParticlePool, drawBloon } from '../engine/renderer.js';
 import { addSystem, removeSystem, addRenderSystem, removeRenderSystem, getFPS, isFPSVisible } from '../engine/game-loop.js';
@@ -75,6 +75,10 @@ const paradeBob    = new Float32Array(PARADE_MAX);
 let barTrackRect = null;
 let onResize = null;
 
+// Cached DOM refs + last-shown progress (avoid per-frame getElementById/writes)
+let fpsEl = null, barFillEl = null, pctEl = null, tipEl = null;
+let lastShownPct = -1;
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 export function initLoading(onComplete) {
   const canvas = document.getElementById('loading-canvas');
@@ -91,8 +95,14 @@ export function initLoading(onComplete) {
   // Init parade
   for (let i = 0; i < PARADE_MAX; i++) _resetParade(i, true);
 
+  // Cache DOM refs
+  fpsEl     = document.getElementById('fps-counter');
+  barFillEl = document.getElementById('loading-bar-fill');
+  pctEl     = document.getElementById('loading-pct');
+  tipEl     = document.getElementById('loading-tip-text');
+  lastShownPct = -1;
+
   // Set initial tip
-  const tipEl = document.getElementById('loading-tip-text');
   if (tipEl) tipEl.textContent = TIPS[0];
 
   // Invalidate cached bar geometry on resize
@@ -121,6 +131,7 @@ function _cleanup() {
   renderFn = null;
   onResize = null;
   pool     = null;
+  fpsEl = null; barFillEl = null; pctEl = null; tipEl = null;
 }
 
 // ── Load sequence ─────────────────────────────────────────────────────────────
@@ -175,8 +186,7 @@ function _update(dt) {
   if (!pool || resolved) return;
   elapsedT += dt;
 
-  // Update FPS counter
-  const fpsEl = document.getElementById('fps-counter');
+  // Update FPS counter (cached element)
   if (fpsEl && isFPSVisible()) {
     const current = getFPS();
     if (current !== lastFPS) {
@@ -191,25 +201,31 @@ function _update(dt) {
   progress += (targetPct - progress) * dt * 4;
   if (Math.abs(progress - targetPct) < 0.5) progress = targetPct;
 
-  // Update DOM progress
-  const fill = document.getElementById('loading-bar-fill');
-  const pctEl = document.getElementById('loading-pct');
-  if (fill) fill.style.width = `${progress}%`;
-  if (pctEl) pctEl.textContent = `${Math.round(progress)}%`;
+  // Update DOM progress only when the rounded value actually changes
+  // (the fixed loop runs at 120Hz — no need to rewrite identical strings).
+  const shownPct = Math.round(progress);
+  if (shownPct !== lastShownPct) {
+    if (barFillEl) barFillEl.style.width = `${shownPct}%`;
+    if (pctEl) pctEl.textContent = `${shownPct}%`;
+    lastShownPct = shownPct;
+  }
 
   // Rotate tips
   if (elapsedT > nextTip) {
     nextTip = elapsedT + 3.5;
     tipIdx = (tipIdx + 1) % TIPS.length;
-    const tipEl = document.getElementById('loading-tip-text');
     if (tipEl) {
-      tipEl.style.transition = 'opacity 0.25s, transform 0.25s';
-      tipEl.style.opacity = '0';
-      tipEl.style.transform = 'translateY(6px)';
+      // Capture a local element ref so the pending timeout is safe even if
+      // teardown nulls the cached module ref before it fires.
+      const el = tipEl;
+      const idx = tipIdx;
+      el.style.transition = 'opacity 0.25s, transform 0.25s';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(6px)';
       setTimeout(() => {
-        tipEl.textContent = TIPS[tipIdx];
-        tipEl.style.opacity = '1';
-        tipEl.style.transform = 'translateY(0)';
+        el.textContent = TIPS[idx];
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
       }, 260);
     }
   }
@@ -227,8 +243,9 @@ function _update(dt) {
       const ex = barTrackRect.left + barTrackRect.width * (progress / 100);
       const ey = barTrackRect.top + barTrackRect.height * 0.5;
 
-      // Emit glowing energy sparks from the filling edge
-      const count = Math.random() < 0.5 ? 4 : 6;
+      // Emit glowing energy sparks from the filling edge. The fixed loop runs
+      // at 120Hz, so keep the per-tick count low to avoid saturating the pool.
+      const count = Math.random() < 0.5 ? 2 : 3;
       for (let i = 0; i < count; i++) {
         const shapeType = Math.random() < 0.4 ? 3 : (Math.random() < 0.2 ? 1 : 0); // 3=glow, 1=star, 0=circle
         const angle = (Math.random() - 0.5) * Math.PI;
