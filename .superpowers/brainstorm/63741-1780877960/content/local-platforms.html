@@ -1,0 +1,38 @@
+<h2>Local text in the hybrid model</h2>
+<p class="subtitle">You chose C: Seamless private hybrid — strong offline text + paid cloud for photos/videos. Now the practical question: how good (and on what machines) does that local text need to be?</p>
+
+<h3>For the free local/offline text roleplay tier, which stance is closest?</h3>
+<p class="subtitle">This choice drives model choices, performance claims, Windows support effort, and whether "local" is a real differentiator or mostly a privacy checkbox.</p>
+
+<div class="options">
+  <div class="option" data-choice="apple-silicon-primary" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>macOS Apple Silicon primary (best local experience)</h3>
+      <p>Target M-series Macs (16GB+ unified memory). Use MLX or highly optimized local inference so 13B–70B models feel responsive for roleplay. Excellent privacy story. Windows/Linux as future or lower-priority. "Local just works great" on the hardware many power users already own.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="cross-platform" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>True cross-platform (macOS + Windows from v1)</h3>
+      <p>Local text must deliver a usable experience on modern Windows machines too (NVIDIA/AMD GPUs where possible, CPU fallback otherwise). Accept slower tokens/sec or smaller models on non-Apple hardware. Broader audience, harder to make "local" feel premium everywhere.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="local-good-enough" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Local as strong privacy baseline + seamless cloud</h3>
+      <p>Local text should be "good enough" and fully private on decent hardware (Mac or Windows). Many users will use paid cloud text for speed/quality anyway. Engineering focus goes into smooth local↔cloud handoff, desktop UX, characters, and memory — not chasing max local perf on every machine.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <p class="label">Why this matters</p>
+  <p>Apple Silicon + MLX makes surprisingly good local roleplay possible today. Cross-platform local inference is more painful and the quality gap is large. Video generation locally is still unrealistic for a good experience on consumer machines in 2026.</p>
+</div>
+
+<p><em>Click the best match above (or closest), then reply here with your letter + any extra details ("must support M1 16GB", "Windows with 8GB VRAM", "I don't care if local text is slow as long as private", etc.). One step at a time.</em></p>

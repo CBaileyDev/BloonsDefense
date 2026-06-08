@@ -1,0 +1,99 @@
+<h2>Proposed Approaches — AiGoonTube (Hybrid + Apple Silicon M5-optimized)</h2>
+<p class="subtitle">Locked in so far: Seamless private hybrid (C) — excellent local text roleplay as the privacy foundation + paid cloud for photos &amp; video. Local tier optimized for M-series Macs (M5 and recent M4/M3 with 16-32GB+ unified memory) using MLX for best speed/quality. Windows as future stretch goal.</p>
+
+<div class="section">
+  <p><strong>My take:</strong> Hybrid + Mac-primary is the right bet. It plays to real strengths (MLX on Apple Silicon is legitimately good for local LLMs in 2026) and gives a credible "your fantasies never leave your machine" story that most web apps can't match. The hard parts (NSFW-tolerant image/video providers, adult payments, local video being unrealistic) are the same across approaches.</p>
+</div>
+
+<h3>Pick a base direction</h3>
+<p class="subtitle">Click the approach that feels like the one to design around (you can mix elements in replies).</p>
+
+<div class="options">
+  <div class="option" data-choice="tauri-mlx" onclick="toggleSelect(this)">
+    <div class="letter">1</div>
+    <div class="content">
+      <h3>Tauri + MLX-first Hybrid <span style="color:#0a0; font-size:0.8em">(Recommended)</span></h3>
+      <p><strong>Core:</strong> Lightweight native desktop (Tauri 2: Rust backend + webview). Local text via MLX (Apple-optimized) for responsive 13B–70B roleplay models on M5-class hardware. Cloud images/video gated behind subscription/credits.</p>
+      <div class="pros-cons">
+        <div class="pros"><strong>Pros</strong>
+          <ul>
+            <li>Small footprint, native macOS feel, excellent battery/security story</li>
+            <li>MLX gives the best local tokens/sec and quality on target hardware — real "offline works great" experience</li>
+            <li>Easy to keep local mode completely air-gapped after model download</li>
+            <li>Future Windows port uses llama.cpp without rewriting the whole app</li>
+          </ul>
+        </div>
+        <div class="cons"><strong>Trade-offs / Cons</strong>
+          <ul>
+            <li>Rust + MLX/llama bindings take more effort than pure web</li>
+            <li>Still need to hunt or self-host NSFW-friendly image/video APIs (mainstream ones are hostile to adult)</li>
+            <li>Local video gen remains impractical (even on M5)</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>High-level flow:</strong> Desktop UI (Tauri) ↔ Local MLX LLM (text/roleplay/memory)  |  Paid path → Cloud media gateway (Stripe + vetted providers) → Image/Video models</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="electron-ollama" onclick="toggleSelect(this)">
+    <div class="letter">2</div>
+    <div class="content">
+      <h3>Electron + Ollama/llama.cpp Hybrid</h3>
+      <p><strong>Core:</strong> Electron desktop for faster rich UI development. Local inference via Ollama (easy install) or direct llama.cpp, still prioritizing Apple Silicon paths. Same hybrid cloud for media.</p>
+      <div class="pros-cons">
+        <div class="pros"><strong>Pros</strong>
+          <ul>
+            <li>Much quicker to build complex roleplay features (branching, multi-char, lorebooks, UI polish)</li>
+            <li>Huge ecosystem — can adapt existing web RP frontends</li>
+            <li>Cross-platform (Windows) "for free" earlier</li>
+          </ul>
+        </div>
+        <div class="cons"><strong>Trade-offs / Cons</strong>
+          <ul>
+            <li>Electron is heavy (memory, bundle size, "bloat" perception) — hurts the lightweight private companion vibe</li>
+            <li>Local perf still good on Mac but the overhead makes the "optimized for M5" story less compelling</li>
+            <li>Higher resource use even when "offline"</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="local-plus-image" onclick="toggleSelect(this)">
+    <div class="letter">3</div>
+    <div class="content">
+      <h3>Tauri Hybrid + Early Local Image Ambition</h3>
+      <p><strong>Core:</strong> Same as #1, but invest early engineering in local image generation (MLX diffusion or converted Flux/SDXL models) so free tier includes text + some images offline. Video stays cloud-only.</p>
+      <div class="pros-cons">
+        <div class="pros"><strong>Pros</strong>
+          <ul>
+            <li>Stronger "everything local" privacy claim — users can generate without any cloud for text + images</li>
+            <li>Differentiates even more from web apps</li>
+          </ul>
+        </div>
+        <div class="cons"><strong>Trade-offs / Cons</strong>
+          <ul>
+            <li>Local image quality/speed on even M5 hardware is "good for a local model" not "paid tier competitive" for most users</li>
+            <li>Explodes app complexity, model download sizes, and support burden (prompt engineering, LoRAs, generation settings)</li>
+            <li>Delays the revenue-driving paid media features</li>
+            <li>Video still impossible locally at usable quality/speed</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Hard realities that apply to all three</h3>
+  <ul>
+    <li><strong>Video generation:</strong> Consumer-local high-quality video is not realistic in 2026 for a snappy app experience (slow, low-res, high VRAM). Plan on cloud for video from day one if you want it in paid tier.</li>
+    <li><strong>NSFW cloud providers:</strong> Most big APIs have heavy restrictions or outright bans on adult/porn content. You will need to find tolerant ones (community hosts, specific endpoints, or self-hosted) and be prepared for them to change policies.</li>
+    <li><strong>Payments for adult:</strong> High risk. Stripe works for some adult but requires approval, has high fees, and can be unpredictable. Crypto or specialized processors add UX friction. Chargebacks are common in this space.</li>
+    <li><strong>Distribution &amp; updates:</strong> Website DMG downloads + macOS notarization. No App Store. Need update mechanism (Sparkle, Tauri updater, etc.).</li>
+    <li><strong>Safety / legal:</strong> Strong text filters + ToS that clearly puts responsibility on the user. No real-person non-consensual deepfakes. Age verification is mostly self-attestation + "18+ only" — robust ID checks kill the privacy appeal.</li>
+    <li><strong>Model downloads:</strong> Users will pull multi-GB files. Need excellent UX, resume, recommended models, quantization choices, and storage management.</li>
+  </ul>
+</div>
+
+<p><em>Click your preferred base approach above (or the closest), then reply here with feedback — e.g. "1 but add local image experiments later", "2 because I want Windows sooner", "1 with more focus on memory/roleplay features first", or any other constraints I missed. We'll refine and move to a written design spec.</em></p>

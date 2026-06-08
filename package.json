@@ -1,0 +1,61 @@
+{
+  "name": "bloons-reborn",
+  "version": "0.1.0",
+  "description": "Bloons Reborn — Tower Defense Reimagined",
+  "main": "electron/main.js",
+  "author": "Bloons Reborn Team",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "start:dev": "NODE_ENV=development electron . --inspect",
+    "build:mac": "electron-builder --mac --arm64",
+    "build:mac-x64": "electron-builder --mac --x64",
+    "build:win": "electron-builder --win --x64",
+    "build": "electron-builder --mac --arm64"
+  },
+  "devDependencies": {
+    "electron": "^35.1.0",
+    "electron-builder": "^25.1.8"
+  },
+  "dependencies": {
+    "@fontsource/cinzel-decorative": "^5.1.1",
+    "@fontsource/inter": "^5.1.1",
+    "@fontsource/orbitron": "^5.1.1",
+    "@fontsource/rajdhani": "^5.1.1"
+  },
+  "build": {
+    "appId": "com.bloonsreborn.game",
+    "productName": "Bloons Reborn",
+    "copyright": "Copyright © 2026 Bloons Reborn Team",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "renderer/**/*",
+      "node_modules/@fontsource/**/*",
+      "!node_modules/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.games",
+      "target": [
+        { "target": "dmg", "arch": ["arm64"] },
+        { "target": "zip", "arch": ["arm64"] }
+      ],
+      "darkModeSupport": true,
+      "hardenedRuntime": false,
+      "icon": "renderer/assets/images/icon.png"
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "renderer/assets/images/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
