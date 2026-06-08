@@ -17,7 +17,7 @@ const TIPS = [
   'Farming for cash in early rounds snowballs your late-game power.',
   'Upgrade monkeys before placing new ones for better value.',
   'Co-op allows you to share the upgrade path with a teammate!',
-  'Bloons Reborn features 12 unique monkey classes never seen before.',
+  'Thornward features 12 unique monkey classes never seen before.',
   'The Phantom Bloon is invisible until hit — area-of-effect towers are key!',
 ];
 

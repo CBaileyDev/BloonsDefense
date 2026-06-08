@@ -364,7 +364,7 @@ function _initNewsTicker() {
   const el = document.getElementById('news-ribbon-text');
   if (!el) return;
   el.textContent = [
-    '🎉 Welcome to Bloons Reborn Alpha!',
+    '🎉 Welcome to Thornward Alpha!',
     '🗺️ 3 new maps launching next update',
     '🐒 Chrono Monkey class revealed',
     '💎 Complete the Daily Quest to earn free gems',
