@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bloons Reborn</title>
-  <meta name="description" content="Bloons Reborn — Tower Defense Reimagined" />
+  <title>Thornward</title>
+  <meta name="description" content="Thornward — Tower Defense Reimagined" />
 
   <!-- Local fonts (offline) -->
   <link rel="stylesheet" href="../node_modules/@fontsource/orbitron/700.css" />
@@ -33,7 +33,7 @@
     <canvas id="splash-canvas"></canvas>
     <div class="splash-content">
       <div class="splash-logo-wrap" id="splash-logo-wrap">
-        <img src="assets/images/game_logo.png" alt="Bloons Reborn" class="splash-logo" id="splash-logo-img" draggable="false" />
+        <img src="assets/images/game_logo.png" alt="Thornward" class="splash-logo" id="splash-logo-img" draggable="false" />
       </div>
       <p class="splash-subtitle" id="splash-subtitle">TOWER DEFENSE REIMAGINED</p>
       <div class="splash-click-prompt" id="splash-click-prompt">
@@ -49,11 +49,16 @@
        DOM only: text labels (progress bar, tip, status)
   ══════════════════════════════════════════════════════════════ -->
   <div id="screen-loading" class="screen">
+    <!-- Mystical-forest background -->
+    <div class="loading-bg-wrap">
+      <img src="assets/images/loading_bg.png" alt="" class="loading-bg-img" id="loading-bg-img" draggable="false" />
+      <div class="loading-bg-overlay"></div>
+    </div>
     <canvas id="loading-canvas"></canvas>
     <div class="loading-content">
       <div class="loading-wordmark">
-        <span class="loading-word-bloons">BLOONS</span>
-        <span class="loading-word-reborn">REBORN</span>
+        <span class="loading-word-thorn">THORN</span>
+        <span class="loading-word-ward">WARD</span>
       </div>
       <div class="loading-bar-outer">
         <div class="loading-bar-track">
@@ -124,7 +129,7 @@
     <!-- Center: Logo + news -->
     <div class="menu-center-panel">
       <div class="menu-logo-area">
-        <img src="assets/images/game_logo.png" alt="Bloons Reborn" class="menu-logo" draggable="false" />
+        <img src="assets/images/game_logo.png" alt="Thornward" class="menu-logo" draggable="false" />
         <div class="menu-tagline">TOWER DEFENSE REIMAGINED</div>
         <div class="menu-platform-badge" id="platform-badge">macOS · M5 Optimized</div>
       </div>
@@ -193,7 +198,7 @@
       <button class="footer-pill" id="btn-collection">📚 Collection</button>
       <button class="footer-pill" id="btn-leaderboard">📊 Leaderboard</button>
       <div class="footer-spacer"></div>
-      <div class="footer-version">Bloons Reborn · v0.1.0 Alpha</div>
+      <div class="footer-version">Thornward · v0.1.0 Alpha</div>
     </footer>
   </div>
 

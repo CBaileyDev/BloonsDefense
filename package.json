@@ -1,9 +1,9 @@
 {
-  "name": "bloons-reborn",
+  "name": "thornward",
   "version": "0.1.0",
-  "description": "Bloons Reborn — Tower Defense Reimagined",
+  "description": "Thornward — Tower Defense Reimagined",
   "main": "electron/main.js",
-  "author": "Bloons Reborn Team",
+  "author": "Thornward Team",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
@@ -25,9 +25,9 @@
     "@fontsource/rajdhani": "^5.1.1"
   },
   "build": {
-    "appId": "com.bloonsreborn.game",
-    "productName": "Bloons Reborn",
-    "copyright": "Copyright © 2026 Bloons Reborn Team",
+    "appId": "com.thornward.game",
+    "productName": "Thornward",
+    "copyright": "Copyright © 2026 Thornward Team",
     "directories": {
       "output": "dist"
     },

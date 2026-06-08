@@ -149,8 +149,10 @@ function _update(dt) {
     if (fY[i] < -80) _resetFloater(i, false);
   }
 
-  // Ambient particles — sparse
+  // Ambient particles — drifting fireflies / glowing spores to match the
+  // bioluminescent forest background (warm gold + cyan-mint).
   if (Math.random() < 0.25) {
+    const mint = Math.random() < 0.5;
     pool.emitOne({
       x: Math.random() * W,
       y: Math.random() * H,
@@ -159,8 +161,10 @@ function _update(dt) {
       size: Math.random() * 3 + 1,
       life: 1,
       decay: 0.3 + Math.random() * 0.3,
-      r: 124, g: 58, b: 237,
-      shape: Math.random() < 0.4 ? 3 : 0,
+      r: mint ? 130 : 255,
+      g: mint ? 240 : 214,
+      b: mint ? 200 : 120,
+      shape: Math.random() < 0.6 ? 3 : 0,
     });
   }
 
@@ -360,7 +364,7 @@ function _initNewsTicker() {
   const el = document.getElementById('news-ribbon-text');
   if (!el) return;
   el.textContent = [
-    '🎉 Welcome to Bloons Reborn Alpha!',
+    '🎉 Welcome to Thornward Alpha!',
     '🗺️ 3 new maps launching next update',
     '🐒 Chrono Monkey class revealed',
     '💎 Complete the Daily Quest to earn free gems',

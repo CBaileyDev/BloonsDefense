@@ -37,7 +37,7 @@ function createWindow() {
     center: true,
     show: false,                   // show after ready-to-show
     backgroundColor: '#0a0a0f',   // prevent white flash
-    title: 'Bloons Reborn',
+    title: 'Thornward',
 
     // macOS native chrome
     ...(isMac ? {
@@ -75,8 +75,8 @@ function createWindow() {
   // Log GPU info in dev mode
   if (isDev) {
     mainWindow.webContents.on('did-finish-load', () => {
-      console.log(`[Bloons Reborn] Window ready | platform: ${process.platform} | arch: ${os.arch()}`);
-      console.log(`[Bloons Reborn] GPU acceleration active`);
+      console.log(`[Thornward] Window ready | platform: ${process.platform} | arch: ${os.arch()}`);
+      console.log(`[Thornward] GPU acceleration active`);
     });
   }
 

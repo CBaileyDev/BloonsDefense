@@ -81,6 +81,6 @@ document.addEventListener('keydown', e => {
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  if (window.electronAPI) window.electronAPI.setTitle('Bloons Reborn');
+  if (window.electronAPI) window.electronAPI.setTitle('Thornward');
   boot();
 });
