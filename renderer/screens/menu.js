@@ -34,6 +34,7 @@ let renderFn    = null;
 let elapsedT    = 0;
 let toastTimeout = null;
 let lastFPS     = -1;
+let onPlay      = null;   // launch callback supplied by the router
 
 // Tracked DOM listeners so destroyMenu() can tear them all down (no leaks on re-entry)
 const _domListeners = [];
@@ -48,8 +49,9 @@ let mouseX = 0.5, mouseY = 0.5;
 let smoothX = 0.5, smoothY = 0.5;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-export function initMenu() {
-  // Canvas overlay for floating bloons + ambient particles
+export function initMenu(playCb = null) {
+  onPlay = playCb;
+  // Canvas overlay for floating wisps + ambient particles
   const canvas = document.getElementById('menu-canvas');
   if (canvas) {
     pool = new ParticlePool(canvas, 600);
@@ -96,6 +98,7 @@ export function destroyMenu() {
   updateFn = null;
   renderFn = null;
   pool = null;
+  onPlay = null;
 }
 
 // ── Mouse handler for parallax ────────────────────────────────────────────────
@@ -294,8 +297,13 @@ async function _doFullscreen() {
 
 // ── Nav buttons ───────────────────────────────────────────────────────────────
 function _initNavButtons() {
+  // PLAY launches the playable prototype ("The Hollow"); the rest are stubs.
+  _on(document.getElementById('btn-play'), 'click', () => {
+    if (onPlay) onPlay();
+    else showToast('Map Selection is coming soon! 🗺️', '🗺️');
+  });
+
   const stubs = [
-    ['btn-play',         'Map Selection is coming soon! 🗺️',      '🗺️'],
     ['btn-heroes',       'Heroes are being trained… 🦸',           '🦸'],
     ['btn-monkeys',      'Monkey Upgrades coming in v0.2! 🐒',     '🐒'],
     ['btn-shop',         'Trophy Store opens soon! 🏪',            '🏪'],

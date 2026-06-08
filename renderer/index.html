@@ -202,6 +202,25 @@
     </footer>
   </div>
 
+  <!-- ══════════════════════════════════════════════════════════════
+       PROTOTYPE — "The Hollow" vibe slice
+       Walkable enchanted forest + Second Sight (mushroom vision)
+  ══════════════════════════════════════════════════════════════ -->
+  <div id="screen-prototype" class="screen">
+    <canvas id="proto-canvas"></canvas>
+    <div class="proto-ui">
+      <button class="proto-back" id="proto-back">◂ ESC · Return</button>
+      <div class="proto-title">THE HOLLOW</div>
+      <div class="proto-hint" id="proto-hint">
+        <b>WASD / Arrows</b> to wander · hold <b>SPACE</b> for Second Sight · find glowing shrooms to recharge
+      </div>
+      <div class="proto-vision">
+        <span class="proto-vision-label">SECOND&nbsp;SIGHT</span>
+        <div class="proto-vision-track"><div class="proto-vision-fill" id="proto-vision-fill"></div></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Settings Modal -->
   <div id="modal-settings" class="modal hidden" role="dialog">
     <div class="modal-backdrop" id="settings-backdrop"></div>
