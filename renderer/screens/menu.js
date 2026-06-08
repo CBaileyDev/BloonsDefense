@@ -35,6 +35,8 @@ let elapsedT    = 0;
 let toastTimeout = null;
 let lastFPS     = -1;
 let onPlay      = null;   // launch callback supplied by the router
+let bgImgEl     = null;   // cached DOM refs (avoid per-frame getElementById)
+let fpsEl       = null;
 
 // Tracked DOM listeners so destroyMenu() can tear them all down (no leaks on re-entry)
 const _domListeners = [];
@@ -52,6 +54,9 @@ let smoothX = 0.5, smoothY = 0.5;
 export function initMenu(playCb = null) {
   onPlay = playCb;
   // Canvas overlay for floating wisps + ambient particles
+  bgImgEl = document.getElementById('menu-bg-img');
+  fpsEl   = document.getElementById('fps-counter');
+
   const canvas = document.getElementById('menu-canvas');
   if (canvas) {
     pool = new ParticlePool(canvas, 600);
@@ -60,7 +65,7 @@ export function initMenu(playCb = null) {
     for (let i = 0; i < MAX_FLOATERS; i++) _resetFloater(i, true);
 
     updateFn = (dt) => _update(dt);
-    renderFn = () => { if (pool) _draw(pool.W, pool.H); };
+    renderFn = (fdt) => { if (pool) _draw(pool.W, pool.H, fdt); };
     addSystem(updateFn);
     addRenderSystem(renderFn);
   }
@@ -86,19 +91,25 @@ export function destroyMenu() {
     el.removeEventListener(type, fn);
   }
 
-  // Clean up nav button tilt listeners
+  // Clean up nav button tilt listeners + reset any stuck inline tilt transform
+  // (mouseleave never fires if you click PLAY mid-hover).
   const navButtons = document.querySelectorAll('.nav-btn');
   navButtons.forEach(btn => {
     if (btn._onMouseMove) btn.removeEventListener('mousemove', btn._onMouseMove);
     if (btn._onMouseLeave) btn.removeEventListener('mouseleave', btn._onMouseLeave);
     btn._onMouseMove = null;
     btn._onMouseLeave = null;
+    btn.style.transform = '';
+    btn.style.removeProperty('--mouse-x');
+    btn.style.removeProperty('--mouse-y');
   });
 
   updateFn = null;
   renderFn = null;
   pool = null;
   onPlay = null;
+  bgImgEl = null;
+  fpsEl = null;
 }
 
 // ── Mouse handler for parallax ────────────────────────────────────────────────
@@ -116,26 +127,13 @@ function _update(dt) {
   const W = pool.W;
   const H = pool.H;
 
-  // Update FPS counter
-  const fpsEl = document.getElementById('fps-counter');
+  // Update FPS counter (cached element)
   if (fpsEl && isFPSVisible()) {
     const current = getFPS();
     if (current !== lastFPS) {
       fpsEl.textContent = `${current} FPS`;
       lastFPS = current;
     }
-  }
-
-  // Smooth parallax
-  smoothX += (mouseX - smoothX) * dt * 3;
-  smoothY += (mouseY - smoothY) * dt * 3;
-
-  // Apply parallax to bg image via CSS transform (cheap, GPU-composited)
-  const bg = document.getElementById('menu-bg-img');
-  if (bg) {
-    const px = -(smoothX - 0.5) * 24;
-    const py = -(smoothY - 0.5) * 16;
-    bg.style.transform = `translate(calc(-5% + ${px}px), calc(-5% + ${py}px)) scale(1.1)`;
   }
 
   // Update floaters
@@ -175,10 +173,21 @@ function _update(dt) {
 }
 
 // ── Render (once per frame) ─────────────────────────────────────────────────────
-function _draw(W, H) {
+function _draw(W, H, fdt = 0.016) {
   if (!pool) return;
   const ctx = pool.ctx;
   const dpr = pool._dpr;
+
+  // Parallax — runs once per rendered frame (not in the 120Hz fixed update),
+  // so we write the bg transform at most once per frame instead of twice.
+  smoothX += (mouseX - smoothX) * Math.min(1, fdt * 3);
+  smoothY += (mouseY - smoothY) * Math.min(1, fdt * 3);
+  if (bgImgEl) {
+    const px = -(smoothX - 0.5) * 24;
+    const py = -(smoothY - 0.5) * 16;
+    bgImgEl.style.transform = `translate(calc(-5% + ${px}px), calc(-5% + ${py}px)) scale(1.1)`;
+  }
+
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, W, H);
 

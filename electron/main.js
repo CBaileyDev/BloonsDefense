@@ -12,7 +12,9 @@ app.commandLine.appendSwitch('enable-accelerated-2d-canvas');
 app.commandLine.appendSwitch('enable-oop-rasterization');
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
 app.commandLine.appendSwitch('enable-features', 'Metal,Vulkan,UseSkiaRenderer,CanvasOopRasterization');
-app.commandLine.appendSwitch('disable-frame-rate-limit');
+// NOTE: deliberately NOT disabling the frame-rate limit — letting Chromium pace
+// rAF to the display's vsync gives smoother, tear-free frames and avoids burning
+// GPU/battery rendering faster than the monitor can show (incl. 120Hz ProMotion).
 
 // ── Dev helpers ─────────────────────────────────────────────────────────────
 const isDev = process.env.NODE_ENV === 'development';
@@ -121,7 +123,12 @@ ipcMain.handle('set-title', (_, title) => {
   if (mainWindow) mainWindow.setTitle(title);
 });
 
-// Open external links in system browser, not in-app
+// Open external links in system browser, not in-app.
+// Only allow web URLs — never file:, javascript:, etc.
 ipcMain.on('open-external', (_, url) => {
-  shell.openExternal(url);
+  if (typeof url !== 'string') return;
+  try {
+    const u = new URL(url);
+    if (u.protocol === 'http:' || u.protocol === 'https:') shell.openExternal(url);
+  } catch { /* malformed URL — ignore */ }
 });

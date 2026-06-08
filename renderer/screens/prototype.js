@@ -24,6 +24,7 @@ const SHROOM_RESPAWN = 13;       // sec for a drained charger-shroom to bloom ag
 // ── State ────────────────────────────────────────────────────────────────────────
 let pool = null, updateFn = null, renderFn = null, onExit = null;
 let clock = 0, lastFPS = -1, lastVisionPct = -1;
+let fpsEl = null, visionFillEl = null;   // cached DOM refs
 
 const player = { x: WORLD_W * 0.5, y: WORLD_H * 0.62, bob: 0, moving: false };
 const cam = { x: 0, y: 0 };
@@ -43,6 +44,8 @@ export function initPrototype(exitCb) {
   if (!canvas) return;
 
   pool = new ParticlePool(canvas, 500);
+  fpsEl = document.getElementById('fps-counter');
+  visionFillEl = document.getElementById('proto-vision-fill');
   _generateWorld();
 
   player.x = WORLD_W * 0.5;
@@ -68,6 +71,7 @@ export function destroyPrototype() {
   document.getElementById('proto-back')?.removeEventListener('click', _exit);
   keys.clear();
   pool = null; updateFn = null; renderFn = null; onExit = null;
+  fpsEl = null; visionFillEl = null;
   trees = []; mushrooms = []; ferns = []; runes = []; spirits = []; clearings = []; pathPts = [];
 }
 
@@ -164,8 +168,7 @@ function _update(dt) {
   clock += dt;
   const W = pool.W, H = pool.H;
 
-  // FPS readout
-  const fpsEl = document.getElementById('fps-counter');
+  // FPS readout (cached element)
   if (fpsEl && isFPSVisible()) {
     const cur = getFPS();
     if (cur !== lastFPS) { fpsEl.textContent = `${cur} FPS`; lastFPS = cur; }
@@ -236,11 +239,10 @@ function _update(dt) {
 
   pool.update(dt);
 
-  // Vision meter (throttled DOM write)
+  // Vision meter (throttled DOM write, cached element)
   const pct = Math.round(energy * 100);
   if (pct !== lastVisionPct) {
-    const fill = document.getElementById('proto-vision-fill');
-    if (fill) fill.style.width = pct + '%';
+    if (visionFillEl) visionFillEl.style.width = pct + '%';
     lastVisionPct = pct;
   }
 }
