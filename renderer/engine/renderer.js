@@ -132,12 +132,14 @@ export class ParticlePool {
     }
   }
 
-  /** Draw all particles — batched, minimal state changes */
+  /** Draw all particles — batched, minimal state changes.
+   *  Does NOT clear the canvas: callers clear once at the top of their own
+   *  frame draw, so the particle layer composites on top of whatever was
+   *  already painted (background, nebula, hex grid, etc). */
   draw() {
     const ctx = this.ctx;
     const dpr = this._dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, this.W, this.H);
 
     // Sort by shape to batch draws (simple counting sort for 4 shapes)
     // Actually for <2000 particles, iterating once per shape is fine

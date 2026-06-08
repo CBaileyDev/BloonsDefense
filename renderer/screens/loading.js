@@ -3,7 +3,7 @@
 // Zero DOM animation, single game loop system
 
 import { ParticlePool, drawBloon } from '../engine/renderer.js';
-import { addSystem, removeSystem, getFPS, isFPSVisible } from '../engine/game-loop.js';
+import { addSystem, removeSystem, addRenderSystem, removeRenderSystem, getFPS, isFPSVisible } from '../engine/game-loop.js';
 
 // ── Tips ──────────────────────────────────────────────────────────────────────
 const TIPS = [
@@ -49,7 +49,8 @@ const BLOON_DEFS = [
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let pool      = null;
-let systemFn  = null;
+let updateFn  = null;
+let renderFn  = null;
 let elapsedT  = 0;
 let progress  = 0; // 0..100
 let lastFPS   = -1;
@@ -72,8 +73,13 @@ const paradeBob    = new Float32Array(PARADE_MAX);
 // Hex grid state
 let hexPhase = 0;
 
+// Cached geometry of the progress bar track (avoids per-frame layout reflow).
+// Invalidated on resize and re-read lazily once the element has a real size.
+let barTrackRect = null;
+let onResize = null;
+
 // ── Init ──────────────────────────────────────────────────────────────────────
-export async function initLoading(onComplete) {
+export function initLoading(onComplete) {
   const canvas = document.getElementById('loading-canvas');
   pool = new ParticlePool(canvas, 800);
   elapsedT  = 0;
@@ -93,9 +99,16 @@ export async function initLoading(onComplete) {
   const tipEl = document.getElementById('loading-tip-text');
   if (tipEl) tipEl.textContent = TIPS[0];
 
-  // Register system
-  systemFn = (dt) => _tick(dt);
-  addSystem(systemFn);
+  // Invalidate cached bar geometry on resize
+  barTrackRect = null;
+  onResize = () => { barTrackRect = null; };
+  window.addEventListener('resize', onResize);
+
+  // Register fixed-step update + once-per-frame render
+  updateFn = (dt) => _update(dt);
+  renderFn = () => { if (pool) _draw(pool.W, pool.H); };
+  addSystem(updateFn);
+  addRenderSystem(renderFn);
 
   // Run fake loading sequence
   _runLoadSequence();
@@ -104,9 +117,13 @@ export async function initLoading(onComplete) {
 export function destroyLoading() { _cleanup(); }
 
 function _cleanup() {
-  if (systemFn) removeSystem(systemFn);
+  if (updateFn) removeSystem(updateFn);
+  if (renderFn) removeRenderSystem(renderFn);
+  if (onResize) window.removeEventListener('resize', onResize);
   if (pool) pool.destroy();
-  systemFn = null;
+  updateFn = null;
+  renderFn = null;
+  onResize = null;
   pool     = null;
 }
 
@@ -146,7 +163,7 @@ async function _runLoadSequence() {
   await _wait(500);
 
   resolved = true;
-  _cleanup();
+  // Teardown is handled by the onComplete callback (destroyLoading()).
   if (onDoneCb) onDoneCb();
 }
 
@@ -157,8 +174,8 @@ function _setStatus(text) {
 
 function _wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// ── Tick ───────────────────────────────────────────────────────────────────────
-function _tick(dt) {
+// ── Update (fixed timestep) ─────────────────────────────────────────────────────
+function _update(dt) {
   if (!pool || resolved) return;
   elapsedT += dt;
 
@@ -202,14 +219,19 @@ function _tick(dt) {
     }
   }
 
-  // Spawn bar energy particles along progress fill
+  // Spawn bar energy particles along the filling edge.
+  // Uses cached track geometry + the progress value so we never call
+  // getBoundingClientRect (which would force a layout reflow every step).
   if (progress > 2) {
-    const barEl = document.getElementById('loading-bar-fill');
-    if (barEl) {
-      const barRect = barEl.getBoundingClientRect();
-      const ex = barRect.right;
-      const ey = barRect.top + 5;
-      
+    if (!barTrackRect || barTrackRect.width === 0) {
+      const trackEl = document.getElementById('loading-bar-track');
+      const r = trackEl ? trackEl.getBoundingClientRect() : null;
+      if (r && r.width > 0) barTrackRect = r;
+    }
+    if (barTrackRect) {
+      const ex = barTrackRect.left + barTrackRect.width * (progress / 100);
+      const ey = barTrackRect.top + barTrackRect.height * 0.5;
+
       // Emit glowing energy sparks from the filling edge
       const count = Math.random() < 0.5 ? 4 : 6;
       for (let i = 0; i < count; i++) {
@@ -251,12 +273,11 @@ function _tick(dt) {
 
   // Update particles
   pool.update(dt);
-
-  // Draw
-  _draw(W, H);
 }
 
+// ── Render (once per frame) ─────────────────────────────────────────────────────
 function _draw(W, H) {
+  if (!pool) return;
   const ctx = pool.ctx;
   const dpr = pool._dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
